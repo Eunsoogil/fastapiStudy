@@ -25,6 +25,7 @@ class UpdateItem(BaseModel):
 @app.get("/")
 def home():
     # localhost:8000/docs -> 문서 자동 산출
+    # localhost:8000/redoc -> 문서 자동 산출
     return {"Data": "testing"}
 
 
@@ -32,7 +33,13 @@ def home():
 # path에 여러 옵션을 줄 수 있다
 # None이라고 명시하면 default값이 없다는 의미이다
 # * 을 앞에 붙이면 path로 default값을 준 파라미터를 앞에 배치 가능
-def get_item(*, item_id: int = Path(None, description="id는 2보다 작아야합니다", gt=0, lt=2), name: Optional[str] = None):
+def get_item(*,
+             item_id: int = Path(None, description="id는 1보다 크고 4보다 작아야합니다", gt=0, lt=5),
+             name: Optional[str] = None):
+
+    if not inventory:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='아이템이 존재하지 않습니다')
+
     if name is not None:
         for i in inventory:
             if inventory[i].name == name:
@@ -44,7 +51,7 @@ def get_item(*, item_id: int = Path(None, description="id는 2보다 작아야�
 @app.post('/create-item/{item_id}')
 def create_item(item_id: int, item: Item):
     if item_id in inventory:
-        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='아이템이 존재하지 않습니다')
+        return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='아이템이 이미 존재합니다')
 
     inventory[item_id] = item
     return inventory[item_id]
@@ -68,6 +75,7 @@ def update_item(item_id: int, item: Item):
 
 
 @app.delete("/delete-item")
+# query parameter임을 명시, ...은 require라는 의미
 def delete_item(item_id: int = Query(..., description="아이템의 id", gt=0),):
     if item_id not in inventory:
         return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='아이템이 존재하지 않습니다')
